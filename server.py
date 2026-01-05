@@ -1,59 +1,47 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import threading
+from flask import Flask, jsonify, request
 import time
-import requests
 
 app = Flask(__name__)
-CORS(app)
 
 relay_state = "OFF"
 wifi_name = "UNKNOWN"
-last_seen = 0
+last_seen = time.time()
 
 @app.route("/")
 def home():
     return "ESP01S Web Server Running"
 
-@app.route("/relay", methods=["GET", "POST"])
+@app.route("/relay", methods=["GET"])
 def relay():
     global relay_state, wifi_name, last_seen
 
-    if request.method == "POST":
-        data = request.get_json(silent=True)
-        if data:
-            if data.get("state") in ["ON", "OFF"]:
-                relay_state = data["state"]
-            if "wifi" in data:
-                wifi_name = data["wifi"]
-            last_seen = int(time.time())
+    # Nhận tên WiFi từ ESP
+    if "wifi" in request.args:
+        wifi_name = request.args.get("wifi")
 
-        return jsonify({
-            "state": relay_state,
-            "wifi": wifi_name,
-            "online": True
-        })
+    # Điều khiển relay qua URL
+    if "state" in request.args:
+        if request.args.get("state") == "ON":
+            relay_state = "ON"
+        elif request.args.get("state") == "OFF":
+            relay_state = "OFF"
 
-    online = (time.time() - last_seen) < 30
+    last_seen = time.time()
 
+    return jsonify({
+        "state": relay_state,
+        "wifi": wifi_name,
+        "online": True
+    })
+
+@app.route("/status")
+def status():
+    online = (time.time() - last_seen) < 10
     return jsonify({
         "state": relay_state,
         "wifi": wifi_name,
         "online": online
     })
-
-
-# ===== ANTI SLEEP (Render Free) =====
-def keep_alive():
-    while True:
-        try:
-            requests.get("https://esp01-server.onrender.com/")
-        except:
-            pass
-        time.sleep(600)  # 10 phút
-
-threading.Thread(target=keep_alive, daemon=True).start()
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
