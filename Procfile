@@ -1,2 +1,2 @@
-web: gunicorn htc_weather_server:app
+web: gunicorn esp01_server:app
 
