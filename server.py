@@ -47,7 +47,7 @@ def relay():
 def keep_alive():
     while True:
         try:
-            requests.get("https://esp01s-server.onrender.com/")
+            requests.get("https://esp01-server.onrender.com/")
         except:
             pass
         time.sleep(600)  # 10 phút
