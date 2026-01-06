@@ -1,62 +1,24 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>ESP01S Control Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
+@app.route("/relay", methods=["GET", "POST"])
+def relay():
+    global relay_state, wifi_name, esp_online
 
-<h2>ESP01S CONTROL PANEL</h2>
+    if request.method == "POST":
+        data = request.get_json()
+        if data:
+            if data.get("state") in ["ON", "OFF"]:
+                relay_state = data["state"]
+            if "wifi" in data:
+                wifi_name = data["wifi"]
+            esp_online = True
 
-<p id="wifi">WiFi: --</p>
-<p id="relay">Relay: --</p>
+        return jsonify({
+            "state": relay_state,
+            "wifi": wifi_name,
+            "online": esp_online
+        })
 
-<button onclick="setRelay('ON')">BẬT RELAY</button>
-<button onclick="setRelay('OFF')">TẮT RELAY</button>
-
-<script>
-const SERVER = "https://esp01-server.onrender.com";
-
-// ===== CẬP NHẬT TRẠNG THÁI =====
-function updateStatus() {
-  fetch(SERVER + "/status?t=" + Date.now())
-    .then(response => {
-      if (!response.ok) throw new Error("HTTP error");
-      return response.json();
+    return jsonify({
+        "state": relay_state,
+        "wifi": wifi_name,
+        "online": esp_online
     })
-    .then(data => {
-      // JSON ĐÚNG:
-      // { online: true, state: "OFF", wifi: "Vinatoken_UCO" }
-
-      if (data.online === true) {
-        document.getElementById("wifi").innerText =
-          "WiFi: Đã kết nối (" + data.wifi + ")";
-      } else {
-        document.getElementById("wifi").innerText =
-          "WiFi: Chưa kết nối";
-      }
-
-      document.getElementById("relay").innerText =
-        "Relay: " + data.state;
-    })
-    .catch(err => {
-      document.getElementById("wifi").innerText =
-        "WiFi: Lỗi kết nối server";
-      console.error(err);
-    });
-}
-
-// ===== GỬI LỆNH RELAY =====
-function setRelay(state) {
-  fetch(SERVER + "/relay?state=" + state + "&t=" + Date.now())
-    .then(() => updateStatus());
-}
-
-// ===== AUTO REFRESH =====
-setInterval(updateStatus, 2000);
-updateStatus();
-</script>
-
-</body>
-</html>
